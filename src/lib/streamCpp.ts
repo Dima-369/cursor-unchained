@@ -12,6 +12,7 @@ import {
   X_CURSOR_CLIENT_VERSION,
   X_REQUEST_ID,
   X_SESSION_ID,
+  LOCALHOST_MITMPROXY_PORT,
 } from "./env";
 
 async function sendStreamCppRequest(
@@ -56,25 +57,60 @@ async function sendStreamCppRequest(
     "https://us-only.gcpp.cursor.sh:443/aiserver.v1.AiService/StreamCpp"
   );
 
-  const options: https.RequestOptions = {
-    hostname: url.hostname,
-    port: url.port || 443,
-    path: url.pathname,
-    method: "POST",
-    headers: {
-      "connect-accept-encoding": "gzip",
-      "connect-content-encoding": "gzip",
-      "connect-protocol-version": "1",
-      "content-type": "application/connect+proto",
-      "x-cursor-client-type": "ide",
-      "x-cursor-client-version": X_CURSOR_CLIENT_VERSION ?? "",
-      "x-cursor-streaming": "true",
-      "x-request-id": X_REQUEST_ID ?? "",
-      "x-session-id": X_SESSION_ID ?? "",
-      Authorization: `Bearer ${token}`,
-      "Content-Length": envelope.length,
-    },
-  };
+  // Configure proxy if LOCALHOST_MITMPROXY_PORT is set
+  let options: https.RequestOptions;
+  if (LOCALHOST_MITMPROXY_PORT) {
+    console.log(`Using proxy: localhost:${LOCALHOST_MITMPROXY_PORT} for us-only.gcpp.cursor.sh`);
+    // Use proxy configuration for mitmproxy
+    options = {
+      hostname: "localhost",
+      port: parseInt(LOCALHOST_MITMPROXY_PORT),
+      path: "/aiserver.v1.AiService/StreamCpp",
+      method: "POST",
+      headers: {
+        "connect-accept-encoding": "gzip",
+        "connect-content-encoding": "gzip",
+        "connect-protocol-version": "1",
+        "content-type": "application/connect+proto",
+        "x-cursor-client-type": "ide",
+        "x-cursor-client-version": X_CURSOR_CLIENT_VERSION ?? "",
+        "x-cursor-streaming": "true",
+        "x-request-id": X_REQUEST_ID ?? "",
+        "x-session-id": X_SESSION_ID ?? "",
+        Authorization: `Bearer ${token}`,
+        "Content-Length": envelope.length,
+        // Host header to indicate the target server
+        "Host": "us-only.gcpp.cursor.sh",
+        "Connection": "close",
+      },
+      // Disable certificate validation for proxy connections (development only)
+      rejectUnauthorized: false,
+    };
+  } else {
+    console.log("Using direct connection to us-only.gcpp.cursor.sh");
+    // Use direct connection
+    options = {
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        "connect-accept-encoding": "gzip",
+        "connect-content-encoding": "gzip",
+        "connect-protocol-version": "1",
+        "content-type": "application/connect+proto",
+        "x-cursor-client-type": "ide",
+        "x-cursor-client-version": X_CURSOR_CLIENT_VERSION ?? "",
+        "x-cursor-streaming": "true",
+        "x-request-id": X_REQUEST_ID ?? "",
+        "x-session-id": X_SESSION_ID ?? "",
+        Authorization: `Bearer ${token}`,
+        "Content-Length": envelope.length,
+      },
+    };
+  }
+
+  console.log("StreamCpp request options:", JSON.stringify(options, null, 2));
 
   return new Promise<string>((resolve, reject) => {
     const req = https.request(options, (res: IncomingMessage) => {
@@ -234,6 +270,9 @@ async function sendStreamCppRequest(
         if (res.statusCode && res.statusCode >= 400) {
           result.error = result.error || `HTTP ${res.statusCode}`;
         }
+
+        // Log the full response result before resolving
+        console.log("Full response result:", JSON.stringify(result, null, 2));
 
         // Return final JSON - always return something
         try {

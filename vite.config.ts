@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
     process.env.X_CURSOR_CLIENT_VERSION = env.X_CURSOR_CLIENT_VERSION;
   if (env.X_REQUEST_ID) process.env.X_REQUEST_ID = env.X_REQUEST_ID;
   if (env.X_SESSION_ID) process.env.X_SESSION_ID = env.X_SESSION_ID;
+  if (env.LOCALHOST_MITMPROXY_PORT)
+    process.env.LOCALHOST_MITMPROXY_PORT = env.LOCALHOST_MITMPROXY_PORT;
 
   return {
     plugins: [enhancedImages(), sveltekit(), tailwindcss()],

@@ -13,3 +13,4 @@ export const CURSOR_BEARER_TOKEN = getEnvVar("CURSOR_BEARER_TOKEN");
 export const X_CURSOR_CLIENT_VERSION = getEnvVar("X_CURSOR_CLIENT_VERSION");
 export const X_REQUEST_ID = getEnvVar("X_REQUEST_ID");
 export const X_SESSION_ID = getEnvVar("X_SESSION_ID");
+export const LOCALHOST_MITMPROXY_PORT = getEnvVar("LOCALHOST_MITMPROXY_PORT");

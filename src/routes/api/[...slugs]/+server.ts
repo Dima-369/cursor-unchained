@@ -15,6 +15,7 @@ const app = new Elysia({ prefix: "/api" })
     const code = (body as { code: string }).code;
     console.log("Code:", code);
     const streamCpp = await sendStreamCppRequest(code);
+    console.log("Response:", streamCpp);
     return new Response(streamCpp, {
       headers: { "Content-Type": "application/json" },
     });

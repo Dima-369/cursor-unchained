@@ -9,7 +9,7 @@ import type {
   DecodedCodeResult,
 } from "./types/proto";
 import { defaultRefreshTabContextPayload } from "./constants";
-import { CURSOR_BEARER_TOKEN, X_REQUEST_ID, X_SESSION_ID } from "./env";
+import { CURSOR_BEARER_TOKEN, X_REQUEST_ID, X_SESSION_ID, LOCALHOST_MITMPROXY_PORT } from "./env";
 
 async function sendRequest(): Promise<void> {
   const requestRoot = await protobuf.load(
@@ -30,19 +30,47 @@ async function sendRequest(): Promise<void> {
 
   const buffer = Buffer.from(Request.encode(Request.create(payload)).finish());
 
-  const options: https.RequestOptions = {
-    hostname: "api2.cursor.sh",
-    path: "/aiserver.v1.AiService/RefreshTabContext",
-    method: "POST",
-    headers: {
-      "Content-Type": "application/proto",
-      Authorization: `Bearer ${CURSOR_BEARER_TOKEN}`,
-      "Content-Length": buffer.length,
-      "x-request-id": X_REQUEST_ID ?? "",
-      "x-session-id": X_SESSION_ID ?? "",
-    },
-  };
+  // Configure proxy if LOCALHOST_MITMPROXY_PORT is set
+  let options: https.RequestOptions;
+  if (LOCALHOST_MITMPROXY_PORT) {
+    console.log(`Using proxy: localhost:${LOCALHOST_MITMPROXY_PORT} for api2.cursor.sh`);
+    // Use proxy configuration for mitmproxy
+    options = {
+      hostname: "localhost",
+      port: parseInt(LOCALHOST_MITMPROXY_PORT),
+      path: "/aiserver.v1.AiService/RefreshTabContext",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/proto",
+        Authorization: `Bearer ${CURSOR_BEARER_TOKEN}`,
+        "Content-Length": buffer.length,
+        "x-request-id": X_REQUEST_ID ?? "",
+        "x-session-id": X_SESSION_ID ?? "",
+        // Host header to indicate the target server
+        "Host": "api2.cursor.sh",
+        "Connection": "close",
+      },
+      // Disable certificate validation for proxy connections (development only)
+      rejectUnauthorized: false,
+    };
+  } else {
+    console.log("Using direct connection to api2.cursor.sh");
+    // Use direct connection
+    options = {
+      hostname: "api2.cursor.sh",
+      path: "/aiserver.v1.AiService/RefreshTabContext",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/proto",
+        Authorization: `Bearer ${CURSOR_BEARER_TOKEN}`,
+        "Content-Length": buffer.length,
+        "x-request-id": X_REQUEST_ID ?? "",
+        "x-session-id": X_SESSION_ID ?? "",
+      },
+    };
+  }
 
+  console.log("Request options:", JSON.stringify(options, null, 2));
   const req = https.request(options, (res: IncomingMessage) => {
     const chunks: Buffer[] = [];
     res.on("data", (chunk: Buffer) => chunks.push(chunk));
