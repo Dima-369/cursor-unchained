@@ -23,7 +23,66 @@ curl -X POST http://localhost:5173/api/streamCpp \
   -d '{"code": "your code here"}'
 ```
 
-## Example: Function Completion
+## Advanced: Specifying Cursor Position and File Context
+
+The API now supports a detailed request format that includes cursor position and additional file context. This format allows for more precise completions by providing:
+
+- `current_file.contents`: The full file content
+- `current_file.cursor_position.line`: 0-indexed line number
+- `current_file.cursor_position.column`: 0-indexed column number
+- `current_file.language_id`: The programming language (e.g., "javascript")
+- `current_file.relative_workspace_path`: The file path in the workspace
+
+Example with cursor position:
+
+```bash
+curl -X POST http://localhost:5173/api/streamCpp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "current_file": {
+      "contents": "// this a test\\n\\nfunction bubble_so",
+      "cursor_position": {"line": 2, "column": 15},
+      "language_id": "javascript",
+      "relative_workspace_path": "test.js"
+    }
+  }'
+```
+
+### Response with Detailed Format
+
+When using the detailed format, the API returns completions that respect your context:
+
+```json
+{
+  "status": 200,
+  "contentType": "application/connect+proto",
+  "modelInfo": {
+    "isFusedCursorPredictionModel": true,
+    "isMultidiffModel": false
+  },
+  "rangeToReplace": {
+    "startLine": 1,
+    "startColumn": 3,
+    "endLine": 0,
+    "endColumn": 0
+  },
+  "text": "// this a test\\n\\nfunction bubble_sort(arr) {\\n    let n = arr.length;\\n    for (let i = 0; i < n - 1; i++) {\\n        for (let j = 0; j < n - i - 1; j++) {\\n            if (arr[j] > arr[j + 1]) {\\n\\n",
+  "doneEdit": false,
+  "doneStream": false,
+  "debug": {
+    "modelOutput": "",
+    "modelInput": "",
+    "streamTime": "693.5673660002649",
+    "ttftTime": "55.10979699995369"
+  },
+  "trailer": {},
+  "error": null
+}
+```
+
+The detailed format now properly completes "function bubble_so" to "function bubble_sort" while preserving the context (the comment "// this a test").
+
+## Example: Function Completion with Context
 
 To get completion for code starting with "// this a test\n\nfunction bubble_so":
 
@@ -57,8 +116,8 @@ When you run the above command, you'll receive a JSON response like this:
   "debug": {
     "modelOutput": "",
     "modelInput": "",
-    "streamTime": "708.8346170000732",
-    "ttftTime": "55.067675000056624"
+    "streamTime": "575.5701519995928",
+    "ttftTime": "54.11893399991095"
   },
   "trailer": {},
   "error": null
@@ -66,6 +125,46 @@ When you run the above command, you'll receive a JSON response like this:
 ```
 
 The `text` field contains the completed code - in this case, the AI preserved the comment "// this a test" and completed "function bubble_so" to a full bubble sort function implementation.
+
+## Basic Function Completion
+
+For simple function completion without additional context:
+
+```bash
+curl -X POST http://localhost:5173/api/streamCpp \
+  -H "Content-Type: application/json" \
+  -d '{"code": "function bubble_so"}'
+```
+
+### Basic Response
+
+```json
+{
+  "status": 200,
+  "contentType": "application/connect+proto",
+  "modelInfo": {
+    "isFusedCursorPredictionModel": true,
+    "isMultidiffModel": false
+  },
+  "rangeToReplace": {
+    "startLine": 1,
+    "startColumn": 1,
+    "endLine": 0,
+    "endColumn": 0
+  },
+  "text": "function bubble_sort(arr) {\\n    let n = arr.length;\\n    for (let i = 0; i < n - 1; i++) {\\n        for (let j = 0; j < n - i - 1; j++) {\\n            if (arr[j] > arr[j + 1]) {\\n\\n",
+  "doneEdit": false,
+  "doneStream": false,
+  "debug": {
+    "modelOutput": "",
+    "modelInput": "",
+    "streamTime": "544.2174859996885",
+    "ttftTime": "53.90054899919778"
+  },
+  "trailer": {},
+  "error": null
+}
+```
 
 ## Use Cases
 
