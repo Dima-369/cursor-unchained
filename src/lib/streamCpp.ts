@@ -156,6 +156,9 @@ async function sendStreamCppRequest(
         error: null,
       };
 
+      // Initialize array to store all protobuf messages for debugging
+      (result as any).rawProtobuf = [];
+
       res.on("data", (chunk: Buffer) => {
         dataBuffer = Buffer.concat([dataBuffer, chunk]);
 
@@ -186,6 +189,9 @@ async function sendStreamCppRequest(
           try {
             const decoded = Response.decode(msgData) as any;
 
+            // Store the raw decoded protobuf data for debugging
+            const rawProtobufData = { ...decoded };
+
             // Protobuf fields are in snake_case, map them to camelCase
             // Handle both snake_case (from proto) and camelCase (if protobufjs converts)
             if (decoded.model_info || decoded.modelInfo) {
@@ -203,12 +209,29 @@ async function sendStreamCppRequest(
             }
             if (decoded.range_to_replace || decoded.rangeToReplace) {
               const range = decoded.range_to_replace || decoded.rangeToReplace;
-              result.rangeToReplace = {
-                startLine: range.start_line ?? range.startLine ?? 0,
-                startColumn: range.start_column ?? range.startColumn ?? 0,
-                endLine: range.end_line ?? range.endLine ?? 0,
-                endColumn: range.end_column ?? range.endColumn ?? 0,
-              };
+
+              // Check the raw object keys to determine which fields were actually present in the proto
+              const rangeKeys = Object.keys(range);
+
+              result.rangeToReplace = {};
+
+              // Only set fields that were actually present in the original protobuf message
+              if (rangeKeys.includes('start_line') || rangeKeys.includes('startLine')) {
+                const startLine = range.start_line ?? range.startLine;
+                if (startLine !== undefined && startLine !== null) result.rangeToReplace.startLine = startLine;
+              }
+              if (rangeKeys.includes('start_column') || rangeKeys.includes('startColumn')) {
+                const startColumn = range.start_column ?? range.startColumn;
+                if (startColumn !== undefined && startColumn !== null) result.rangeToReplace.startColumn = startColumn;
+              }
+              if (rangeKeys.includes('end_line') || rangeKeys.includes('endLine')) {
+                const endLine = range.end_line ?? range.endLine;
+                if (endLine !== undefined && endLine !== null) result.rangeToReplace.endLine = endLine;
+              }
+              if (rangeKeys.includes('end_column') || rangeKeys.includes('endColumn')) {
+                const endColumn = range.end_column ?? range.endColumn;
+                if (endColumn !== undefined && endColumn !== null) result.rangeToReplace.endColumn = endColumn;
+              }
             }
             if (decoded.text) {
               result.text += decoded.text;
@@ -246,6 +269,9 @@ async function sendStreamCppRequest(
                 ttftTime: decoded.debug_ttft_time ?? decoded.debugTtftTime,
               };
             }
+
+            // Add the decoded message to the rawProtobuf array for debugging
+            (result as any).rawProtobuf.push({ ...decoded });
           } catch (e) {
             const error = e as Error;
             result.error = error.message;
