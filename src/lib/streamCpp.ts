@@ -49,6 +49,11 @@ async function sendStreamCppRequest(
     // If relative workspace path is provided, use it
     if (code.current_file.relative_workspace_path) {
       newPayload.currentFile.relativeWorkspacePath = code.current_file.relative_workspace_path;
+
+      // Also update the fileDiffHistories with the correct filename
+      if (newPayload.fileDiffHistories && newPayload.fileDiffHistories.length > 0) {
+        newPayload.fileDiffHistories[0].fileName = code.current_file.relative_workspace_path;
+      }
     }
   } else {
     // Simple format: just update the contents
@@ -69,6 +74,9 @@ async function sendStreamCppRequest(
   ) as unknown as ProtoType;
 
   const payload: StreamCppRequest = newPayload;
+
+  // Store the original request payload for debugging
+  const protoRequest = { ...payload };
 
   const protoBuffer = Buffer.from(
     Request.encode(Request.create(payload)).finish()
@@ -157,7 +165,9 @@ async function sendStreamCppRequest(
       };
 
       // Initialize array to store all protobuf messages for debugging
-      (result as any).rawProtobuf = [];
+      (result as any).protoResponse = [];
+      // Add the original request for debugging
+      (result as any).protoRequest = protoRequest;
 
       res.on("data", (chunk: Buffer) => {
         dataBuffer = Buffer.concat([dataBuffer, chunk]);
@@ -270,8 +280,8 @@ async function sendStreamCppRequest(
               };
             }
 
-            // Add the decoded message to the rawProtobuf array for debugging
-            (result as any).rawProtobuf.push({ ...decoded });
+            // Add the decoded message to the protoResponse array for debugging
+            (result as any).protoResponse.push({ ...decoded });
           } catch (e) {
             const error = e as Error;
             result.error = error.message;

@@ -17,11 +17,9 @@ const app = new Elysia({ prefix: "/api" })
 
     if (requestBody.current_file) {
       // Detailed format: {"current_file": {...}}
-      // For now, extract the contents from the detailed format
-      // In the future, this could be enhanced to properly use cursor position
-      const code = requestBody.current_file.contents || "function";
-      console.log("Code (from detailed format):", code);
-      const streamCpp = await sendStreamCppRequest(code);
+      // Pass the entire object to properly handle all fields
+      console.log("Detailed format request:", requestBody);
+      const streamCpp = await sendStreamCppRequest(requestBody);
       console.log("Response:", streamCpp);
       return new Response(streamCpp, {
         headers: { "Content-Type": "application/json" },

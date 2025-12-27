@@ -173,6 +173,26 @@ This API is useful for:
 - AI-assisted coding
 - Generating function implementations
 - Code snippet suggestions
+- Fixing typos in code (even when cursor is positioned elsewhere)
+
+## Example: Typo Correction
+
+The API can also correct typos in code. For example, when the cursor is positioned at the beginning of a line but there's a typo later in the comment, the API can still identify and fix the typo:
+
+```bash
+curl -X POST http://localhost:5173/api/streamCpp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "current_file": {
+      "contents": "// This is a coment with a typo at the start",
+      "cursor_position": {"line": 0, "column": 0},
+      "language_id": "cpp",
+      "relative_workspace_path": "test.cpp"
+    }
+  }'
+```
+
+In this example, even though the cursor is positioned at column 0, the API recognizes and fixes the typo "coment" to "comment" in the response.
 
 ## Troubleshooting
 

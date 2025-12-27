@@ -310,6 +310,8 @@ export interface StreamCppResult {
   } | null;
   trailer: unknown;
   error: unknown;
+  protoResponse?: any[];
+  protoRequest?: any;
 }
 
 export interface DecodedCodeResult {
