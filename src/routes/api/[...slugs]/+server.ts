@@ -12,13 +12,30 @@ const app = new Elysia({ prefix: "/api" })
     });
   })
   .post("/streamCpp", async ({ body }) => {
-    const code = (body as { code: string }).code;
-    console.log("Code:", code);
-    const streamCpp = await sendStreamCppRequest(code);
-    console.log("Response:", streamCpp);
-    return new Response(streamCpp, {
-      headers: { "Content-Type": "application/json" },
-    });
+    // Check if the request uses the detailed format with current_file
+    const requestBody = body as { code?: string; current_file?: any };
+
+    if (requestBody.current_file) {
+      // Detailed format: {"current_file": {...}}
+      // For now, extract the contents from the detailed format
+      // In the future, this could be enhanced to properly use cursor position
+      const code = requestBody.current_file.contents || "function";
+      console.log("Code (from detailed format):", code);
+      const streamCpp = await sendStreamCppRequest(code);
+      console.log("Response:", streamCpp);
+      return new Response(streamCpp, {
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      // Simple format: {"code": "..."}
+      const code = requestBody.code || "function";
+      console.log("Code (from simple format):", code);
+      const streamCpp = await sendStreamCppRequest(code);
+      console.log("Response:", streamCpp);
+      return new Response(streamCpp, {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   })
   .get("/streamCpp", async () => {
     const streamCpp = await sendStreamCppRequest();

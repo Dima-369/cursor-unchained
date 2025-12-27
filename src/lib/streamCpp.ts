@@ -16,7 +16,7 @@ import {
 } from "./env";
 
 async function sendStreamCppRequest(
-  code: string = "function"
+  code: string | { current_file: any } = "function"
 ): Promise<string> {
   const token = CURSOR_BEARER_TOKEN;
   if (!token || token === "undefined") {
@@ -26,10 +26,36 @@ async function sendStreamCppRequest(
     process.exit(1);
   }
 
-  const newPayload = { ...defaultStreamCppPayload };
-  newPayload.currentFile.contents = code;
+  let newPayload = { ...defaultStreamCppPayload };
 
-  console.log("New Code:", code);
+  // Check if code is the detailed format object
+  if (typeof code === 'object' && code !== null && code.current_file) {
+    // Detailed format: use the provided current_file data
+    newPayload.currentFile.contents = code.current_file.contents || "function";
+
+    // If cursor position is provided, use it
+    if (code.current_file.cursor_position) {
+      newPayload.currentFile.cursorPosition = {
+        line: code.current_file.cursor_position.line || 0,
+        column: code.current_file.cursor_position.column || 0
+      };
+    }
+
+    // If language ID is provided, use it
+    if (code.current_file.language_id) {
+      newPayload.currentFile.languageId = code.current_file.language_id;
+    }
+
+    // If relative workspace path is provided, use it
+    if (code.current_file.relative_workspace_path) {
+      newPayload.currentFile.relativeWorkspacePath = code.current_file.relative_workspace_path;
+    }
+  } else {
+    // Simple format: just update the contents
+    newPayload.currentFile.contents = code as string;
+  }
+
+  console.log("New Code:", typeof code === 'object' ? code.current_file?.contents : code);
   const requestRoot = await protobuf.load("./protobuf/streamCppRequest.proto");
   const Request = requestRoot.lookupType(
     "aiserver.v1.StreamCppRequest"
