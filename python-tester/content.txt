@@ -1,0 +1,44 @@
+import requests
+
+line = 3
+column = 1
+
+
+""""
+def test_api_stream():
+    with open("content.txt", "r") as file:
+        contents = file.read()
+
+    data = {
+        "current_file": {
+            "contents": contents,
+            "cursor_position": {"line": line, "column": column},
+            "language_id": "txt",
+            "relative_workspace_path": "test.txt",
+        }
+    }
+
+    # Make the HTTP request
+    response = requests.post(
+        "http://localhost:5173/api/streamCpp",
+        headers={"Content-Type": "application/json"},
+        json=data,
+    )
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the JSON response
+        response_data = response.json()
+
+        # Print rangeToReplace and text from response
+        if "rangeToReplace" in response_data:
+            print("rangeToReplace:", response_data["rangeToReplace"])
+        if "text" in response_data:
+            print("text:", response_data["text"])
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        print("Response:", response.text)
+
+
+if __name__ == "__main__":
+    test_api_stream()
